@@ -264,12 +264,38 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
 
 async def main():
     """Run the MCP server over stdio transport (HTTP health server runs in background)."""
-    async with stdio_server() as (read_stream, write_stream):
-        await server.run(
-            read_stream,
-            write_stream,
-            server.create_initialization_options(),
-        )
+    import sys
+    import traceback
+
+    print("[LifeRadar] Starting MCP server...", file=sys.stderr)
+    print(f"[LifeRadar] APP_NAME={APP_NAME}, VERSION={VERSION}", file=sys.stderr)
+    print(f"[LifeRadar] LIFE_RADAR_API_URL={LIFE_RADAR_API_URL}", file=sys.stderr)
+    print(f"[LifeRadar] Python version: {sys.version}", file=sys.stderr)
+
+    # Verify MCP imports work
+    try:
+        from mcp.server import Server
+        from mcp.server.stdio import stdio_server
+        from mcp.types import Tool, TextContent
+        print("[LifeRadar] MCP imports OK", file=sys.stderr)
+    except ImportError as e:
+        print(f"[LifeRadar] FATAL: MCP import failed: {e}", file=sys.stderr)
+        traceback.print_exc()
+        raise
+
+    try:
+        print("[LifeRadar] Initializing stdio server...", file=sys.stderr)
+        async with stdio_server() as (read_stream, write_stream):
+            print("[LifeRadar] Stdio server opened, running MCP server...", file=sys.stderr)
+            await server.run(
+                read_stream,
+                write_stream,
+                server.create_initialization_options(),
+            )
+    except Exception as e:
+        print(f"[LifeRadar] FATAL: MCP server error: {e}", file=sys.stderr)
+        traceback.print_exc()
+        raise
 
 
 if __name__ == "__main__":
